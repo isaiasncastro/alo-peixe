@@ -80,7 +80,6 @@ async function requestJson(url, options = {}) {
 
   return data;
 }
-
 async function loadExclusives() {
   const data = await requestJson("/api/exclusivas", {
     headers: headers(),
