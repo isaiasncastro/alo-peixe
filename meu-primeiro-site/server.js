@@ -6,10 +6,26 @@ const path = require("node:path");
 const PORT = Number(process.env.PORT || 5600);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "alopeixe2026";
 const ROOT = __dirname;
-const DATA_FILE = path.join(ROOT, "data", "exclusivas.json");
+const DATA_DIR = path.join(ROOT, "data");
+const EXCLUSIVES_FILE = path.join(DATA_DIR, "exclusivas.json");
+const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 const RSS_URL = "https://g1.globo.com/dynamo/to/tocantins/rss2.xml";
 const JSON_FEED_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`;
 const FALLBACK_IMAGE = "assets/alo-peixe-logo.jpeg";
+
+const DEFAULT_SETTINGS = {
+  siteName: "Alô Peixe",
+  tagline: "Plantão Tocantins",
+  heroEyebrow: "Notícias em tempo real",
+  heroTitle: "Alô Peixe acompanha o Tocantins com manchetes, fotos e vídeos.",
+  heroDescription:
+    "Um portal leve e automático que organiza publicações do G1 Tocantins e matérias exclusivas da cidade de Peixe.",
+  tickerLabel: "Ao vivo",
+  automaticFeedEnabled: true,
+  publicSourceUrl: "https://g1.globo.com/to/tocantins/",
+  logo: FALLBACK_IMAGE,
+  footerText: "Portal com atualização automática e matérias exclusivas de Peixe.",
+};
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -80,15 +96,18 @@ function parseRss(xml) {
   return blocks.map((block) => {
     const subtitle = getTag(block, "atom:subtitle");
     const description = subtitle || getTag(block, "description");
+    const link = stripHtml(getTag(block, "link")) || "https://g1.globo.com/to/tocantins/";
 
     return {
-      id: crypto.createHash("sha1").update(getTag(block, "guid") || getTag(block, "link")).digest("hex"),
+      id: crypto.createHash("sha1").update(getTag(block, "guid") || link).digest("hex"),
       source: "G1 Tocantins",
       type: "g1",
       title: stripHtml(getTag(block, "title")),
       description: limitText(description),
-      link: stripHtml(getTag(block, "link")) || "https://g1.globo.com/to/tocantins/",
+      content: "",
+      link,
       pubDate: getTag(block, "pubDate") || new Date().toISOString(),
+      published: true,
       ...getMedia(block),
     };
   });
@@ -100,36 +119,73 @@ function parseJsonFeed(data) {
   }
 
   return data.items.map((item) => {
-    const imageMatch = String(`${item.description || ""} ${item.content || ""}`).match(/<img[^>]+src=["']([^"']+)["']/i);
+    const rawDescription = `${item.description || ""} ${item.content || ""}`;
+    const imageMatch = rawDescription.match(/<img[^>]+src=["']([^"']+)["']/i);
     const image = item.thumbnail || imageMatch?.[1] || FALLBACK_IMAGE;
     const isVideo = /video|vídeo|videos|vídeos/i.test(`${item.title || ""} ${item.link || ""}`);
+    const link = item.link || "https://g1.globo.com/to/tocantins/";
 
     return {
-      id: crypto.createHash("sha1").update(item.guid || item.link || item.title).digest("hex"),
+      id: crypto.createHash("sha1").update(item.guid || link || item.title).digest("hex"),
       source: "G1 Tocantins",
       type: "g1",
       title: stripHtml(item.title || ""),
       description: limitText(item.description || item.content || ""),
-      link: item.link || "https://g1.globo.com/to/tocantins/",
+      content: "",
+      link,
       pubDate: item.pubDate || new Date().toISOString(),
       image,
       mediaType: isVideo ? "vídeo" : image === FALLBACK_IMAGE ? "sem foto" : "imagem",
+      published: true,
     };
   });
 }
 
-async function readExclusives() {
+async function readJson(file, fallback) {
   try {
-    const content = await fs.readFile(DATA_FILE, "utf8");
-    return JSON.parse(content);
+    return JSON.parse(await fs.readFile(file, "utf8"));
   } catch {
-    return [];
+    return fallback;
   }
 }
 
+async function writeJson(file, value) {
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+async function readExclusives() {
+  return readJson(EXCLUSIVES_FILE, []);
+}
+
 async function writeExclusives(items) {
-  await fs.mkdir(path.dirname(DATA_FILE), { recursive: true });
-  await fs.writeFile(DATA_FILE, `${JSON.stringify(items, null, 2)}\n`, "utf8");
+  await writeJson(EXCLUSIVES_FILE, items);
+}
+
+async function readSettings() {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...(await readJson(SETTINGS_FILE, {})),
+  };
+}
+
+async function writeSettings(payload) {
+  const settings = {
+    ...DEFAULT_SETTINGS,
+    siteName: String(payload.siteName || DEFAULT_SETTINGS.siteName).trim(),
+    tagline: String(payload.tagline || DEFAULT_SETTINGS.tagline).trim(),
+    heroEyebrow: String(payload.heroEyebrow || DEFAULT_SETTINGS.heroEyebrow).trim(),
+    heroTitle: String(payload.heroTitle || DEFAULT_SETTINGS.heroTitle).trim(),
+    heroDescription: String(payload.heroDescription || DEFAULT_SETTINGS.heroDescription).trim(),
+    tickerLabel: String(payload.tickerLabel || DEFAULT_SETTINGS.tickerLabel).trim(),
+    automaticFeedEnabled: payload.automaticFeedEnabled !== false,
+    publicSourceUrl: String(payload.publicSourceUrl || DEFAULT_SETTINGS.publicSourceUrl).trim(),
+    logo: String(payload.logo || DEFAULT_SETTINGS.logo).trim(),
+    footerText: String(payload.footerText || DEFAULT_SETTINGS.footerText).trim(),
+  };
+
+  await writeJson(SETTINGS_FILE, settings);
+  return settings;
 }
 
 async function readBody(request) {
@@ -138,7 +194,7 @@ async function readBody(request) {
 
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > 1_000_000) {
+    if (size > 1_500_000) {
       throw new Error("Payload muito grande.");
     }
     chunks.push(chunk);
@@ -149,6 +205,15 @@ async function readBody(request) {
 
 function isAuthorized(request) {
   return request.headers["x-admin-password"] === ADMIN_PASSWORD;
+}
+
+function requireAdmin(request, response) {
+  if (isAuthorized(request)) {
+    return true;
+  }
+
+  sendJson(response, 401, { error: "Senha administrativa inválida." });
+  return false;
 }
 
 function normalizeExclusive(payload, existing = {}) {
@@ -169,13 +234,17 @@ function normalizeExclusive(payload, existing = {}) {
     image: String(payload.image || FALLBACK_IMAGE).trim(),
     mediaType: payload.mediaType === "vídeo" ? "vídeo" : "imagem",
     link: String(payload.link || "#").trim(),
-    pubDate: existing.pubDate || now,
+    pubDate: existing.pubDate || payload.pubDate || now,
     updatedAt: now,
     published: payload.published !== false,
   };
 }
 
-async function getAutomaticNews() {
+async function getAutomaticNews(settings) {
+  if (!settings.automaticFeedEnabled) {
+    return [];
+  }
+
   try {
     const response = await fetch(RSS_URL, {
       headers: {
@@ -199,33 +268,73 @@ async function getAutomaticNews() {
   }
 }
 
+async function publicPayload() {
+  const settings = await readSettings();
+  const exclusives = (await readExclusives()).filter((item) => item.published);
+  let automatic = [];
+  let feedStatus = settings.automaticFeedEnabled ? "online" : "desativado";
+
+  try {
+    automatic = await getAutomaticNews(settings);
+  } catch (error) {
+    feedStatus = `erro: ${error.message}`;
+  }
+
+  const items = [...exclusives, ...automatic].sort(
+    (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
+  );
+
+  return {
+    settings,
+    items,
+    feedStatus,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 async function handleApi(request, response, url) {
+  if (url.pathname === "/api/site" && request.method === "GET") {
+    sendJson(response, 200, await publicPayload());
+    return true;
+  }
+
   if (url.pathname === "/api/news" && request.method === "GET") {
-    const exclusives = (await readExclusives()).filter((item) => item.published);
-    let automatic = [];
-    let feedStatus = "online";
-
-    try {
-      automatic = await getAutomaticNews();
-    } catch (error) {
-      feedStatus = `erro: ${error.message}`;
-    }
-
-    const items = [...exclusives, ...automatic].sort(
-      (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
-    );
-
+    const payload = await publicPayload();
     sendJson(response, 200, {
-      items,
-      feedStatus,
-      updatedAt: new Date().toISOString(),
+      items: payload.items,
+      feedStatus: payload.feedStatus,
+      updatedAt: payload.updatedAt,
     });
     return true;
   }
 
+  if (url.pathname === "/api/admin" && request.method === "GET") {
+    if (!requireAdmin(request, response)) {
+      return true;
+    }
+
+    sendJson(response, 200, {
+      settings: await readSettings(),
+      items: await readExclusives(),
+    });
+    return true;
+  }
+
+  if (url.pathname === "/api/settings" && request.method === "PUT") {
+    if (!requireAdmin(request, response)) {
+      return true;
+    }
+
+    try {
+      sendJson(response, 200, { settings: await writeSettings(await readBody(request)) });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message });
+    }
+    return true;
+  }
+
   if (url.pathname === "/api/exclusivas" && request.method === "GET") {
-    if (!isAuthorized(request)) {
-      sendJson(response, 401, { error: "Senha administrativa inválida." });
+    if (!requireAdmin(request, response)) {
       return true;
     }
 
@@ -234,8 +343,7 @@ async function handleApi(request, response, url) {
   }
 
   if (url.pathname === "/api/exclusivas" && request.method === "POST") {
-    if (!isAuthorized(request)) {
-      sendJson(response, 401, { error: "Senha administrativa inválida." });
+    if (!requireAdmin(request, response)) {
       return true;
     }
 
@@ -253,8 +361,7 @@ async function handleApi(request, response, url) {
 
   const exclusiveMatch = url.pathname.match(/^\/api\/exclusivas\/([^/]+)$/);
   if (exclusiveMatch && ["PUT", "DELETE"].includes(request.method)) {
-    if (!isAuthorized(request)) {
-      sendJson(response, 401, { error: "Senha administrativa inválida." });
+    if (!requireAdmin(request, response)) {
       return true;
     }
 
@@ -292,7 +399,7 @@ async function serveStatic(response, url) {
   const filePath = path.normalize(path.join(ROOT, requested));
 
   if (!filePath.startsWith(ROOT)) {
-    response.writeHead(403);
+    response.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
     response.end("Acesso negado.");
     return;
   }
@@ -301,6 +408,7 @@ async function serveStatic(response, url) {
     const file = await fs.readFile(filePath);
     response.writeHead(200, {
       "Content-Type": MIME_TYPES[path.extname(filePath)] || "application/octet-stream",
+      "Cache-Control": path.extname(filePath) === ".html" ? "no-store" : "public, max-age=60",
     });
     response.end(file);
   } catch {
@@ -326,5 +434,4 @@ const server = http.createServer(async (request, response) => {
 server.listen(PORT, () => {
   console.log(`Alô Peixe público: http://localhost:${PORT}`);
   console.log(`Painel administrativo: http://localhost:${PORT}/admin.html`);
-  console.log(`Senha inicial do painel: ${ADMIN_PASSWORD}`);
 });

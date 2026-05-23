@@ -3,8 +3,23 @@ const FALLBACK_IMAGE = "assets/alo-peixe-logo.jpeg";
 const elements = {
   loginCard: document.querySelector("#loginCard"),
   loginForm: document.querySelector("#loginForm"),
+  loginMessage: document.querySelector("#loginMessage"),
   passwordInput: document.querySelector("#passwordInput"),
   workspace: document.querySelector("#adminWorkspace"),
+  tabButtons: document.querySelectorAll(".tab-button"),
+  panels: document.querySelectorAll(".admin-panel"),
+  settingsForm: document.querySelector("#settingsForm"),
+  settingsMessage: document.querySelector("#settingsMessage"),
+  siteNameInput: document.querySelector("#siteNameInput"),
+  taglineInput: document.querySelector("#taglineInput"),
+  heroEyebrowInput: document.querySelector("#heroEyebrowInput"),
+  heroTitleInput: document.querySelector("#heroTitleInput"),
+  heroDescriptionInput: document.querySelector("#heroDescriptionInput"),
+  tickerLabelInput: document.querySelector("#tickerLabelInput"),
+  publicSourceUrlInput: document.querySelector("#publicSourceUrlInput"),
+  logoInput: document.querySelector("#logoInput"),
+  footerTextInput: document.querySelector("#footerTextInput"),
+  automaticFeedInput: document.querySelector("#automaticFeedInput"),
   storyForm: document.querySelector("#storyForm"),
   storyId: document.querySelector("#storyId"),
   titleInput: document.querySelector("#titleInput"),
@@ -24,25 +39,82 @@ const elements = {
 
 let adminPassword = sessionStorage.getItem("aloPeixeAdminPassword") || "";
 let exclusives = [];
+let settings = {};
 
-function headers() {
+function authHeaders() {
   return {
     "Content-Type": "application/json",
     "X-Admin-Password": adminPassword,
   };
 }
 
-function showMessage(text, isError = false) {
-  elements.formMessage.textContent = text;
-  elements.formMessage.style.color = isError ? "#c73737" : "#18a06f";
+function showMessage(element, text, isError = false) {
+  element.textContent = text;
+  element.classList.toggle("is-error", isError);
+}
+
+async function requestJson(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || "Não foi possível concluir a ação.");
+  }
+
+  return data;
+}
+
+function openTab(panelId) {
+  elements.tabButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.tab === panelId);
+  });
+  elements.panels.forEach((panel) => {
+    panel.classList.toggle("is-active", panel.id === panelId);
+  });
+}
+
+function fillSettingsForm(value) {
+  settings = value || {};
+  elements.siteNameInput.value = settings.siteName || "Alô Peixe";
+  elements.taglineInput.value = settings.tagline || "Plantão Tocantins";
+  elements.heroEyebrowInput.value = settings.heroEyebrow || "Notícias em tempo real";
+  elements.heroTitleInput.value = settings.heroTitle || "";
+  elements.heroDescriptionInput.value = settings.heroDescription || "";
+  elements.tickerLabelInput.value = settings.tickerLabel || "Ao vivo";
+  elements.publicSourceUrlInput.value = settings.publicSourceUrl || "https://g1.globo.com/to/tocantins/";
+  elements.logoInput.value = settings.logo || FALLBACK_IMAGE;
+  elements.footerTextInput.value = settings.footerText || "";
+  elements.automaticFeedInput.checked = settings.automaticFeedEnabled !== false;
+}
+
+function settingsPayload() {
+  return {
+    siteName: elements.siteNameInput.value,
+    tagline: elements.taglineInput.value,
+    heroEyebrow: elements.heroEyebrowInput.value,
+    heroTitle: elements.heroTitleInput.value,
+    heroDescription: elements.heroDescriptionInput.value,
+    tickerLabel: elements.tickerLabelInput.value,
+    publicSourceUrl: elements.publicSourceUrlInput.value,
+    logo: elements.logoInput.value || FALLBACK_IMAGE,
+    footerText: elements.footerTextInput.value,
+    automaticFeedEnabled: elements.automaticFeedInput.checked,
+  };
 }
 
 function resetForm() {
   elements.storyForm.reset();
   elements.storyId.value = "";
+  elements.imageInput.value = FALLBACK_IMAGE;
+  elements.linkInput.value = "#";
   elements.publishedInput.checked = true;
   elements.formTitle.textContent = "Nova matéria";
-  showMessage("");
+  showMessage(elements.formMessage, "");
 }
 
 function formPayload() {
@@ -62,32 +134,23 @@ function fillForm(item) {
   elements.titleInput.value = item.title;
   elements.descriptionInput.value = item.description || "";
   elements.contentInput.value = item.content || "";
-  elements.imageInput.value = item.image === FALLBACK_IMAGE ? "" : item.image;
-  elements.linkInput.value = item.link === "#" ? "" : item.link;
+  elements.imageInput.value = item.image || FALLBACK_IMAGE;
+  elements.linkInput.value = item.link || "#";
   elements.mediaTypeInput.value = item.mediaType || "imagem";
   elements.publishedInput.checked = item.published !== false;
   elements.formTitle.textContent = "Editar matéria";
+  openTab("storyPanel");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-async function requestJson(url, options = {}) {
-  const response = await fetch(url, options);
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(data.error || "Não foi possível concluir a ação.");
-  }
-
-  return data;
-}
-async function loadExclusives() {
-  const data = await requestJson("/api/exclusivas", {
-    headers: headers(),
+async function loadAdmin() {
+  const data = await requestJson("/api/admin", {
+    headers: authHeaders(),
   });
+
+  fillSettingsForm(data.settings);
   exclusives = data.items || [];
   renderExclusives();
-}
-nderExclusives();
 }
 
 function renderExclusives() {
@@ -125,15 +188,31 @@ function renderExclusives() {
 
         await requestJson(`/api/exclusivas/${item.id}`, {
           method: "DELETE",
-          headers: headers(),
+          headers: authHeaders(),
         });
-        await loadExclusives();
-        showMessage("Matéria excluída.");
+        await loadAdmin();
+        showMessage(elements.formMessage, "Matéria excluída.");
       });
 
       return card;
     })
   );
+}
+
+async function saveSettings(event) {
+  event.preventDefault();
+
+  try {
+    const data = await requestJson("/api/settings", {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify(settingsPayload()),
+    });
+    fillSettingsForm(data.settings);
+    showMessage(elements.settingsMessage, "Site atualizado com sucesso.");
+  } catch (error) {
+    showMessage(elements.settingsMessage, error.message, true);
+  }
 }
 
 async function saveStory(event) {
@@ -145,36 +224,42 @@ async function saveStory(event) {
   try {
     await requestJson(url, {
       method,
-      headers: headers(),
+      headers: authHeaders(),
       body: JSON.stringify(formPayload()),
     });
     resetForm();
-    await loadExclusives();
-    showMessage("Matéria salva e site atualizado.");
+    await loadAdmin();
+    showMessage(elements.formMessage, "Matéria salva e site atualizado.");
   } catch (error) {
-    showMessage(error.message, true);
+    showMessage(elements.formMessage, error.message, true);
   }
 }
 
 async function enterAdmin(event) {
   event.preventDefault();
-  adminPassword = elements.passwordInput.value;
+  adminPassword = elements.passwordInput.value.trim();
   sessionStorage.setItem("aloPeixeAdminPassword", adminPassword);
+  showMessage(elements.loginMessage, "Entrando...");
 
   try {
-    await loadExclusives();
+    await loadAdmin();
     elements.loginCard.hidden = true;
     elements.workspace.hidden = false;
+    resetForm();
+    showMessage(elements.loginMessage, "");
   } catch (error) {
-    showMessage(error.message, true);
-    alert("Não foi possível abrir o painel. Confira se o servidor está rodando.");
+    showMessage(elements.loginMessage, error.message, true);
   }
 }
 
 elements.loginForm.addEventListener("submit", enterAdmin);
+elements.settingsForm.addEventListener("submit", saveSettings);
 elements.storyForm.addEventListener("submit", saveStory);
 elements.resetButton.addEventListener("click", resetForm);
-elements.reloadButton.addEventListener("click", loadExclusives);
+elements.reloadButton.addEventListener("click", loadAdmin);
+elements.tabButtons.forEach((button) => {
+  button.addEventListener("click", () => openTab(button.dataset.tab));
+});
 
 if (adminPassword) {
   elements.passwordInput.value = adminPassword;

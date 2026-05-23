@@ -13,7 +13,7 @@
       <img src="assets/alo-peixe-logo.jpeg" alt="Logo Alô Peixe" />
       <span>
         <strong>Painel Alô Peixe</strong>
-        <small>Matérias exclusivas de Peixe</small>
+        <small>Controle editorial completo</small>
       </span>
     </a>
     <a class="admin-public-link" href="/">Ver site público</a>
@@ -22,7 +22,7 @@
   <main class="admin-shell">
     <section class="admin-card login-card" id="loginCard">
       <h1>Entrar no painel</h1>
-      <p>Use a senha administrativa para criar, editar e remover matérias exclusivas.</p>
+      <p>Digite a senha configurada no Render em <strong>ADMIN_PASSWORD</strong>.</p>
       <form id="loginForm">
         <label>
           Senha do painel
@@ -30,77 +30,155 @@
         </label>
         <button type="submit">Entrar</button>
       </form>
+      <p class="message" id="loginMessage" role="status"></p>
     </section>
 
     <section class="admin-workspace" id="adminWorkspace" hidden>
-      <form class="admin-card editor-card" id="storyForm">
-        <div class="form-heading">
-          <div>
-            <p class="eyebrow">Publicação local</p>
-            <h1 id="formTitle">Nova matéria</h1>
+      <nav class="admin-tabs" aria-label="Áreas do painel">
+        <button class="tab-button is-active" type="button" data-tab="settingsPanel">Editar site</button>
+        <button class="tab-button" type="button" data-tab="storyPanel">Matérias</button>
+      </nav>
+
+      <section class="admin-panel is-active" id="settingsPanel">
+        <form class="admin-card editor-card" id="settingsForm">
+          <div class="form-heading">
+            <div>
+              <p class="eyebrow">Configurações do portal</p>
+              <h1>Editar textos e funcionamento</h1>
+            </div>
           </div>
-          <button class="secondary-button" id="resetButton" type="button">Limpar</button>
-        </div>
 
-        <input id="storyId" type="hidden" />
+          <div class="form-grid">
+            <label>
+              Nome do site
+              <input id="siteNameInput" type="text" required />
+            </label>
+            <label>
+              Subtítulo da marca
+              <input id="taglineInput" type="text" required />
+            </label>
+          </div>
 
-        <label>
-          Título
-          <input id="titleInput" type="text" maxlength="140" required />
-        </label>
-
-        <label>
-          Resumo
-          <textarea id="descriptionInput" rows="3" maxlength="260"></textarea>
-        </label>
-
-        <label>
-          Texto completo ou observações
-          <textarea id="contentInput" rows="7"></textarea>
-        </label>
-
-        <div class="form-grid">
           <label>
-            Imagem
-            <input id="imageInput" type="url" placeholder="https://..." />
+            Texto pequeno do topo
+            <input id="heroEyebrowInput" type="text" required />
           </label>
 
           <label>
-            Link externo
-            <input id="linkInput" type="url" placeholder="https://..." />
+            Título principal
+            <textarea id="heroTitleInput" rows="2" required></textarea>
           </label>
-        </div>
 
-        <div class="form-grid">
           <label>
-            Tipo
-            <select id="mediaTypeInput">
-              <option value="imagem">Imagem</option>
-              <option value="vídeo">Vídeo</option>
-            </select>
+            Descrição principal
+            <textarea id="heroDescriptionInput" rows="3" required></textarea>
+          </label>
+
+          <div class="form-grid">
+            <label>
+              Texto do selo ao vivo
+              <input id="tickerLabelInput" type="text" required />
+            </label>
+            <label>
+              Link da fonte original
+              <input id="publicSourceUrlInput" type="url" required />
+            </label>
+          </div>
+
+          <label>
+            Logo ou imagem principal
+            <input id="logoInput" type="text" required />
+          </label>
+
+          <label>
+            Texto do rodapé
+            <input id="footerTextInput" type="text" required />
           </label>
 
           <label class="checkbox-label">
-            <input id="publishedInput" type="checkbox" checked />
-            Publicar no site
+            <input id="automaticFeedInput" type="checkbox" />
+            Usar notícias automáticas do G1 Tocantins
           </label>
-        </div>
 
-        <div class="form-actions">
-          <button type="submit">Salvar matéria</button>
-          <p id="formMessage" role="status"></p>
-        </div>
-      </form>
-
-      <section class="admin-card list-card">
-        <div class="form-heading">
-          <div>
-            <p class="eyebrow">Arquivo editorial</p>
-            <h2>Matérias cadastradas</h2>
+          <div class="form-actions">
+            <button type="submit">Salvar alterações do site</button>
+            <p class="message" id="settingsMessage" role="status"></p>
           </div>
-          <button class="secondary-button" id="reloadButton" type="button">Recarregar</button>
+        </form>
+      </section>
+
+      <section class="admin-panel" id="storyPanel">
+        <div class="admin-grid">
+          <form class="admin-card editor-card" id="storyForm">
+            <div class="form-heading">
+              <div>
+                <p class="eyebrow">Publicação local</p>
+                <h1 id="formTitle">Nova matéria</h1>
+              </div>
+              <button class="secondary-button" id="resetButton" type="button">Limpar</button>
+            </div>
+
+            <input id="storyId" type="hidden" />
+
+            <label>
+              Título
+              <input id="titleInput" type="text" maxlength="140" required />
+            </label>
+
+            <label>
+              Resumo
+              <textarea id="descriptionInput" rows="3" maxlength="280"></textarea>
+            </label>
+
+            <label>
+              Texto completo ou observações
+              <textarea id="contentInput" rows="7"></textarea>
+            </label>
+
+            <div class="form-grid">
+              <label>
+                Imagem
+                <input id="imageInput" type="text" placeholder="assets/alo-peixe-logo.jpeg ou https://..." />
+              </label>
+
+              <label>
+                Link externo
+                <input id="linkInput" type="text" placeholder="#" />
+              </label>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                Tipo
+                <select id="mediaTypeInput">
+                  <option value="imagem">Imagem</option>
+                  <option value="vídeo">Vídeo</option>
+                </select>
+              </label>
+
+              <label class="checkbox-label">
+                <input id="publishedInput" type="checkbox" checked />
+                Publicar no site
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit">Salvar matéria</button>
+              <p class="message" id="formMessage" role="status"></p>
+            </div>
+          </form>
+
+          <section class="admin-card list-card">
+            <div class="form-heading">
+              <div>
+                <p class="eyebrow">Arquivo editorial</p>
+                <h2>Matérias cadastradas</h2>
+              </div>
+              <button class="secondary-button" id="reloadButton" type="button">Recarregar</button>
+            </div>
+            <div class="exclusive-list" id="exclusiveList"></div>
+          </section>
         </div>
-        <div class="exclusive-list" id="exclusiveList"></div>
       </section>
     </section>
   </main>
@@ -120,6 +198,6 @@
     </article>
   </template>
 
-  <script src="admin.js"></script>
+  <script src="admin.js?v=3"></script>
 </body>
 </html>
