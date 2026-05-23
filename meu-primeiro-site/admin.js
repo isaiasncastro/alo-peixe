@@ -82,9 +82,13 @@ async function requestJson(url, options = {}) {
 }
 
 async function loadExclusives() {
-  const data = await requestJson("/api/exclusivas");
+  const data = await requestJson("/api/exclusivas", {
+    headers: headers(),
+  });
   exclusives = data.items || [];
   renderExclusives();
+}
+nderExclusives();
 }
 
 function renderExclusives() {
