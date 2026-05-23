@@ -1,0 +1,239 @@
+.admin-page {
+  min-height: 100vh;
+  background:
+    linear-gradient(135deg, rgba(7, 22, 45, 0.94), rgba(0, 56, 143, 0.88)),
+    url("assets/alo-peixe-logo.jpeg") center / cover fixed;
+}
+
+.admin-header,
+.admin-shell {
+  width: min(100% - 32px, 1180px);
+  margin: 0 auto;
+}
+
+.admin-header {
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.admin-public-link,
+.admin-card button,
+.secondary-button,
+.danger-button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.admin-public-link,
+.admin-card button {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.secondary-button {
+  border: 1px solid var(--line);
+  background: #f7fbff;
+  color: var(--ink);
+}
+
+.danger-button {
+  background: #ffe8e8;
+  color: #9e2020;
+}
+
+.admin-shell {
+  padding: 28px 0 54px;
+}
+
+.admin-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.login-card {
+  max-width: 520px;
+  margin: 58px auto;
+  padding: 28px;
+}
+
+.login-card h1,
+.editor-card h1,
+.list-card h2 {
+  margin: 0;
+  color: var(--ink);
+}
+
+.login-card p {
+  color: var(--muted);
+}
+
+.admin-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.editor-card,
+.list-card {
+  padding: 24px;
+}
+
+.form-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.admin-card form,
+.editor-card {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-card label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-card input,
+.admin-card textarea,
+.admin-card select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font: inherit;
+  text-transform: none;
+}
+
+.admin-card textarea {
+  resize: vertical;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.checkbox-label {
+  align-content: end;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  min-height: 72px;
+}
+
+.checkbox-label input {
+  width: 20px;
+  min-height: 20px;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+#formMessage {
+  margin: 0;
+  color: var(--green);
+  font-weight: 900;
+}
+
+.exclusive-list {
+  display: grid;
+  gap: 12px;
+}
+
+.exclusive-item {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfdff;
+}
+
+.exclusive-item img {
+  width: 112px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #dcecf8;
+}
+
+.exclusive-item span {
+  color: var(--green);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.exclusive-item h3 {
+  margin: 3px 0;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.exclusive-item p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.item-actions {
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 960px) {
+  .admin-workspace,
+  .exclusive-item {
+    grid-template-columns: 1fr;
+  }
+
+  .exclusive-item img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (max-width: 680px) {
+  .admin-header,
+  .form-heading,
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

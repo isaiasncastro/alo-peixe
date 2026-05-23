@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Alô Peixe</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin-page">
+  <header class="admin-header">
+    <a class="brand" href="/">
+      <img src="assets/alo-peixe-logo.jpeg" alt="Logo Alô Peixe" />
+      <span>
+        <strong>Painel Alô Peixe</strong>
+        <small>Matérias exclusivas de Peixe</small>
+      </span>
+    </a>
+    <a class="admin-public-link" href="/">Ver site público</a>
+  </header>
+
+  <main class="admin-shell">
+    <section class="admin-card login-card" id="loginCard">
+      <h1>Entrar no painel</h1>
+      <p>Use a senha administrativa para criar, editar e remover matérias exclusivas.</p>
+      <form id="loginForm">
+        <label>
+          Senha do painel
+          <input id="passwordInput" type="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit">Entrar</button>
+      </form>
+    </section>
+
+    <section class="admin-workspace" id="adminWorkspace" hidden>
+      <form class="admin-card editor-card" id="storyForm">
+        <div class="form-heading">
+          <div>
+            <p class="eyebrow">Publicação local</p>
+            <h1 id="formTitle">Nova matéria</h1>
+          </div>
+          <button class="secondary-button" id="resetButton" type="button">Limpar</button>
+        </div>
+
+        <input id="storyId" type="hidden" />
+
+        <label>
+          Título
+          <input id="titleInput" type="text" maxlength="140" required />
+        </label>
+
+        <label>
+          Resumo
+          <textarea id="descriptionInput" rows="3" maxlength="260"></textarea>
+        </label>
+
+        <label>
+          Texto completo ou observações
+          <textarea id="contentInput" rows="7"></textarea>
+        </label>
+
+        <div class="form-grid">
+          <label>
+            Imagem
+            <input id="imageInput" type="url" placeholder="https://..." />
+          </label>
+
+          <label>
+            Link externo
+            <input id="linkInput" type="url" placeholder="https://..." />
+          </label>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            Tipo
+            <select id="mediaTypeInput">
+              <option value="imagem">Imagem</option>
+              <option value="vídeo">Vídeo</option>
+            </select>
+          </label>
+
+          <label class="checkbox-label">
+            <input id="publishedInput" type="checkbox" checked />
+            Publicar no site
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit">Salvar matéria</button>
+          <p id="formMessage" role="status"></p>
+        </div>
+      </form>
+
+      <section class="admin-card list-card">
+        <div class="form-heading">
+          <div>
+            <p class="eyebrow">Arquivo editorial</p>
+            <h2>Matérias cadastradas</h2>
+          </div>
+          <button class="secondary-button" id="reloadButton" type="button">Recarregar</button>
+        </div>
+        <div class="exclusive-list" id="exclusiveList"></div>
+      </section>
+    </section>
+  </main>
+
+  <template id="exclusiveTemplate">
+    <article class="exclusive-item">
+      <img alt="" />
+      <div>
+        <span></span>
+        <h3></h3>
+        <p></p>
+      </div>
+      <div class="item-actions">
+        <button class="secondary-button edit-button" type="button">Editar</button>
+        <button class="danger-button delete-button" type="button">Excluir</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="admin.js"></script>
+</body>
+</html>
