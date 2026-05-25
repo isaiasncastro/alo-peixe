@@ -1,13 +1,26 @@
 const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
+const https = require("node:https");
 const http = require("node:http");
 const path = require("node:path");
+let axios;
+let cheerio;
+
+try {
+  axios = require("axios");
+  cheerio = require("cheerio");
+} catch {
+  axios = null;
+  cheerio = null;
+}
 
 const PORT = Number(process.env.PORT || 5600);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "alopeixe2026";
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, "data");
 const EXCLUSIVES_FILE = path.join(DATA_DIR, "exclusivas.json");
+const SERVICES_FILE = path.join(DATA_DIR, "prestadores.json");
+const AUTHORITIES_FILE = path.join(DATA_DIR, "autoridades.json");
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 const RSS_URL = "https://g1.globo.com/dynamo/to/tocantins/rss2.xml";
 const JSON_FEED_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`;
@@ -16,15 +29,15 @@ const FALLBACK_IMAGE = "assets/alo-peixe-logo.jpeg";
 const DEFAULT_SETTINGS = {
   siteName: "Alô Peixe",
   tagline: "Plantão Tocantins",
-  heroEyebrow: "Notícias em tempo real",
-  heroTitle: "Alô Peixe acompanha o Tocantins com manchetes, fotos e vídeos.",
+  heroEyebrow: "Jornalismo local",
+  heroTitle: "Notícias de Peixe e Tocantins com foto, vídeo e atualização rápida.",
   heroDescription:
-    "Um portal leve e automático que organiza publicações do G1 Tocantins e matérias exclusivas da cidade de Peixe.",
+    "Acompanhe os principais acontecimentos da cidade, veja galerias, vídeos e matérias publicadas pela redação.",
   tickerLabel: "Ao vivo",
   automaticFeedEnabled: true,
   publicSourceUrl: "https://g1.globo.com/to/tocantins/",
   logo: FALLBACK_IMAGE,
-  footerText: "Portal com atualização automática e matérias exclusivas de Peixe.",
+  footerText: "Portal de notícias com cobertura local, fotos, vídeos e destaques do Tocantins.",
 };
 
 const MIME_TYPES = {
@@ -69,6 +82,165 @@ function stripHtml(value = "") {
 function limitText(value = "", size = 220) {
   const text = stripHtml(value);
   return text.length > size ? `${text.slice(0, size - 3).trim()}...` : text;
+}
+
+function fetchTextAllowingLocalTls(url, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const request = https.get(
+      url,
+      {
+        headers,
+        rejectUnauthorized: false,
+      },
+      (response) => {
+        const chunks = [];
+
+        response.on("data", (chunk) => chunks.push(chunk));
+        response.on("end", () => {
+          const body = Buffer.concat(chunks).toString("utf8");
+
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            reject(new Error(`HTTP respondeu ${response.statusCode}`));
+            return;
+          }
+
+          resolve(body);
+        });
+      }
+    );
+
+    request.setTimeout(15000, () => {
+      request.destroy(new Error("Tempo limite ao buscar feed."));
+    });
+    request.on("error", reject);
+  });
+}
+
+async function fetchText(url, headers = {}) {
+  try {
+    const response = await fetch(url, { headers });
+
+    if (!response.ok) {
+      throw new Error(`HTTP respondeu ${response.status}`);
+    }
+
+    return response.text();
+  } catch (error) {
+    if (url.startsWith("https://")) {
+      return fetchTextAllowingLocalTls(url, headers);
+    }
+
+    throw error;
+  }
+}
+
+function sanitizeArticleHtml($, root) {
+  root.find("script, style, iframe, object, embed, form, input, button, noscript").remove();
+
+  root.find("*").each((_, element) => {
+    const attributes = element.attribs || {};
+
+    Object.keys(attributes).forEach((name) => {
+      const value = attributes[name] || "";
+      const lowerName = name.toLowerCase();
+      const lowerValue = String(value).trim().toLowerCase();
+
+      if (lowerName.startsWith("on") || lowerName === "style") {
+        $(element).removeAttr(name);
+      }
+
+      if (["href", "src"].includes(lowerName) && lowerValue.startsWith("javascript:")) {
+        $(element).removeAttr(name);
+      }
+    });
+  });
+
+  return root.html() || "";
+}
+
+function sanitizeBasicHtml(value = "") {
+  return value
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
+    .replace(/<object[\s\S]*?<\/object>/gi, "")
+    .replace(/<embed[\s\S]*?>/gi, "")
+    .replace(/\son[a-z]+=["'][\s\S]*?["']/gi, "")
+    .replace(/\sstyle=["'][\s\S]*?["']/gi, "")
+    .replace(/(href|src)=["']javascript:[\s\S]*?["']/gi, "");
+}
+
+function extractFirstBlock(html, tagName) {
+  const match = html.match(new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, "i"));
+  return match ? match[1] : "";
+}
+
+async function getArticleHtml(url) {
+  if (axios && cheerio) {
+    const { data } = await axios.get(url, {
+      timeout: 12000,
+      maxRedirects: 4,
+      headers: {
+        "User-Agent": "AloPeixePortal/1.0",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+    return data;
+  }
+
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "AloPeixePortal/1.0",
+      Accept: "text/html,application/xhtml+xml",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Site respondeu ${response.status}`);
+  }
+
+  return response.text();
+}
+
+async function scrapeArticle(targetUrl) {
+  let parsedUrl;
+
+  try {
+    parsedUrl = new URL(targetUrl);
+  } catch {
+    throw new Error("URL da noticia invalida.");
+  }
+
+  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+    throw new Error("Use uma URL http ou https.");
+  }
+
+  const data = await getArticleHtml(parsedUrl.href);
+
+  if (!cheerio) {
+    const title = stripHtml(extractFirstBlock(data, "h1") || extractFirstBlock(data, "title"));
+    const article = extractFirstBlock(data, "article") || extractFirstBlock(data, "main") || extractFirstBlock(data, "body");
+
+    return {
+      titulo: title || "Noticia",
+      conteudo: sanitizeBasicHtml(article),
+      url: parsedUrl.href,
+    };
+  }
+
+  const $ = cheerio.load(data);
+  const title = stripHtml($("h1").first().text() || $("title").first().text());
+  const article = $("article").first().length
+    ? $("article").first()
+    : $("main").first().length
+      ? $("main").first()
+      : $("body").first();
+
+  return {
+    titulo: title || "Noticia",
+    conteudo: sanitizeArticleHtml($, article),
+    url: parsedUrl.href,
+  };
 }
 
 function getTag(block, tagName) {
@@ -162,6 +334,22 @@ async function writeExclusives(items) {
   await writeJson(EXCLUSIVES_FILE, items);
 }
 
+async function readServices() {
+  return readJson(SERVICES_FILE, []);
+}
+
+async function writeServices(items) {
+  await writeJson(SERVICES_FILE, items);
+}
+
+async function readAuthorities() {
+  return readJson(AUTHORITIES_FILE, []);
+}
+
+async function writeAuthorities(items) {
+  await writeJson(AUTHORITIES_FILE, items);
+}
+
 async function readSettings() {
   return {
     ...DEFAULT_SETTINGS,
@@ -219,6 +407,7 @@ function requireAdmin(request, response) {
 function normalizeExclusive(payload, existing = {}) {
   const now = new Date().toISOString();
   const title = String(payload.title || "").trim();
+  const videoUrl = String(payload.videoUrl || "").trim();
 
   if (!title) {
     throw new Error("O título é obrigatório.");
@@ -232,11 +421,35 @@ function normalizeExclusive(payload, existing = {}) {
     description: String(payload.description || "").trim(),
     content: String(payload.content || "").trim(),
     image: String(payload.image || FALLBACK_IMAGE).trim(),
-    mediaType: payload.mediaType === "vídeo" ? "vídeo" : "imagem",
+    videoUrl,
+    mediaType: videoUrl || payload.mediaType === "vídeo" ? "vídeo" : "imagem",
     link: String(payload.link || "#").trim(),
     pubDate: existing.pubDate || payload.pubDate || now,
     updatedAt: now,
     published: payload.published !== false,
+  };
+}
+
+function normalizeDirectoryItem(payload, existing = {}) {
+  const now = new Date().toISOString();
+  const name = String(payload.name || "").trim();
+
+  if (!name) {
+    throw new Error("O nome é obrigatório.");
+  }
+
+  return {
+    id: existing.id || crypto.randomUUID(),
+    name,
+    role: String(payload.role || "").trim(),
+    description: String(payload.description || "").trim(),
+    phone: String(payload.phone || "").trim(),
+    instagram: String(payload.instagram || "").trim(),
+    image: String(payload.image || FALLBACK_IMAGE).trim(),
+    link: String(payload.link || "").trim(),
+    published: payload.published !== false,
+    createdAt: existing.createdAt || now,
+    updatedAt: now,
   };
 }
 
@@ -246,31 +459,26 @@ async function getAutomaticNews(settings) {
   }
 
   try {
-    const response = await fetch(RSS_URL, {
-      headers: {
-        "User-Agent": "AloPeixePortal/1.0",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`RSS respondeu ${response.status}`);
-    }
-
-    return parseRss(await response.text());
+    return parseRss(
+      await fetchText(RSS_URL, {
+        "User-Agent": "Mozilla/5.0 AloPeixePortal/1.0",
+        Accept: "application/rss+xml,text/xml,application/xml",
+      })
+    );
   } catch (rssError) {
-    const response = await fetch(JSON_FEED_URL);
-
-    if (!response.ok) {
-      throw new Error(`RSS falhou: ${rssError.message}; JSON respondeu ${response.status}`);
+    try {
+      return parseJsonFeed(JSON.parse(await fetchText(JSON_FEED_URL, { "User-Agent": "Mozilla/5.0 AloPeixePortal/1.0" })));
+    } catch (jsonError) {
+      throw new Error(`RSS falhou: ${rssError.message}; JSON falhou: ${jsonError.message}`);
     }
-
-    return parseJsonFeed(await response.json());
   }
 }
 
 async function publicPayload() {
   const settings = await readSettings();
   const exclusives = (await readExclusives()).filter((item) => item.published);
+  const services = (await readServices()).filter((item) => item.published);
+  const authorities = (await readAuthorities()).filter((item) => item.published);
   let automatic = [];
   let feedStatus = settings.automaticFeedEnabled ? "online" : "desativado";
 
@@ -287,14 +495,93 @@ async function publicPayload() {
   return {
     settings,
     items,
+    services,
+    authorities,
     feedStatus,
     updatedAt: new Date().toISOString(),
   };
 }
 
+async function handleDirectoryApi(request, response, url, basePath, readItems, writeItems) {
+  if (url.pathname === basePath && request.method === "GET") {
+    if (!requireAdmin(request, response)) {
+      return true;
+    }
+
+    sendJson(response, 200, { items: await readItems() });
+    return true;
+  }
+
+  if (url.pathname === basePath && request.method === "POST") {
+    if (!requireAdmin(request, response)) {
+      return true;
+    }
+
+    try {
+      const items = await readItems();
+      const item = normalizeDirectoryItem(await readBody(request));
+      items.unshift(item);
+      await writeItems(items);
+      sendJson(response, 201, { item });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message });
+    }
+    return true;
+  }
+
+  const match = url.pathname.match(new RegExp(`^${basePath}/([^/]+)$`));
+  if (match && ["PUT", "DELETE"].includes(request.method)) {
+    if (!requireAdmin(request, response)) {
+      return true;
+    }
+
+    const id = match[1];
+    const items = await readItems();
+    const index = items.findIndex((item) => item.id === id);
+
+    if (index === -1) {
+      sendJson(response, 404, { error: "Cadastro não encontrado." });
+      return true;
+    }
+
+    if (request.method === "DELETE") {
+      const [removed] = items.splice(index, 1);
+      await writeItems(items);
+      sendJson(response, 200, { item: removed });
+      return true;
+    }
+
+    try {
+      items[index] = normalizeDirectoryItem(await readBody(request), items[index]);
+      await writeItems(items);
+      sendJson(response, 200, { item: items[index] });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message });
+    }
+    return true;
+  }
+
+  return false;
+}
+
 async function handleApi(request, response, url) {
   if (url.pathname === "/api/site" && request.method === "GET") {
     sendJson(response, 200, await publicPayload());
+    return true;
+  }
+
+  if (url.pathname === "/api/ler-noticia" && request.method === "GET") {
+    if (!requireAdmin(request, response)) {
+      return true;
+    }
+
+    const targetUrl = url.searchParams.get("url") || "";
+
+    try {
+      sendJson(response, 200, await scrapeArticle(targetUrl));
+    } catch (error) {
+      sendJson(response, 500, { error: error.message || "Nao foi possivel carregar o conteudo." });
+    }
     return true;
   }
 
@@ -316,7 +603,17 @@ async function handleApi(request, response, url) {
     sendJson(response, 200, {
       settings: await readSettings(),
       items: await readExclusives(),
+      services: await readServices(),
+      authorities: await readAuthorities(),
     });
+    return true;
+  }
+
+  if (await handleDirectoryApi(request, response, url, "/api/prestadores", readServices, writeServices)) {
+    return true;
+  }
+
+  if (await handleDirectoryApi(request, response, url, "/api/autoridades", readAuthorities, writeAuthorities)) {
     return true;
   }
 

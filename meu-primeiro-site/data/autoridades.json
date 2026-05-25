@@ -1,0 +1,15 @@
+[
+  {
+    "id": "autoridade-exemplo",
+    "name": "Autoridades da cidade",
+    "role": "Cadastro institucional",
+    "description": "Cadastre vereadores, secretários, representantes e demais autoridades pelo painel.",
+    "phone": "",
+    "instagram": "",
+    "image": "assets/alo-peixe-logo.jpeg",
+    "link": "",
+    "published": true,
+    "createdAt": "2026-05-24T00:00:00.000Z",
+    "updatedAt": "2026-05-24T00:00:00.000Z"
+  }
+]

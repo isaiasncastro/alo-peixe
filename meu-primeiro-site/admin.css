@@ -1,8 +1,20 @@
 .admin-page {
   min-height: 100vh;
+  --ink: #f8fafc;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --line: #334155;
+  --paper: #1e293b;
+  --wash: #0f172a;
+  --deep-blue: #0ea5e9;
+  --yellow: #38bdf8;
+  --green: #34d399;
+  --danger: #fb7185;
+  --shadow: 0 24px 70px rgba(2, 6, 23, 0.35);
   background:
-    linear-gradient(135deg, rgba(7, 22, 45, 0.94), rgba(0, 56, 143, 0.88)),
-    url("assets/alo-peixe-logo.jpeg") center / cover fixed;
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 34%),
+    linear-gradient(135deg, #0f172a, #111827 48%, #082f49);
+  color: var(--text);
 }
 
 .admin-header,
@@ -40,14 +52,14 @@
 .admin-public-link,
 .admin-card button {
   background: var(--yellow);
-  color: var(--ink);
+  color: #020617;
 }
 
 .secondary-button,
 .tab-button {
   border: 1px solid var(--line);
-  background: #f7fbff;
-  color: var(--ink);
+  background: #0f172a;
+  color: var(--text);
 }
 
 .tab-button.is-active {
@@ -57,8 +69,8 @@
 }
 
 .danger-button {
-  background: #ffe8e8;
-  color: #9e2020;
+  background: rgba(251, 113, 133, 0.16);
+  color: #fecdd3;
 }
 
 .admin-shell {
@@ -87,6 +99,14 @@
 
 .login-card p {
   color: var(--muted);
+}
+
+.local-login-hint {
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--text);
 }
 
 .admin-workspace {
@@ -152,6 +172,7 @@
   border-radius: 8px;
   padding: 10px 12px;
   color: var(--text);
+  background: #0f172a;
   font: inherit;
   text-transform: none;
 }
@@ -207,7 +228,7 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px;
-  background: #fbfdff;
+  background: #111827;
 }
 
 .exclusive-item img {
@@ -215,7 +236,7 @@
   height: 76px;
   object-fit: cover;
   border-radius: 6px;
-  background: #dcecf8;
+  background: #0f172a;
 }
 
 .exclusive-item span {
@@ -241,6 +262,91 @@
 .item-actions {
   display: grid;
   gap: 8px;
+}
+
+.btn-action {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #38bdf8;
+  color: #020617;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.news-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  padding: 42px 16px;
+  background: rgba(2, 6, 23, 0.92);
+}
+
+.news-modal.is-open {
+  display: block;
+}
+
+.news-modal-content {
+  width: min(100%, 920px);
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 24px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.close-reader-button {
+  margin-bottom: 18px;
+}
+
+.news-reader {
+  color: var(--text);
+}
+
+.news-reader h2 {
+  margin: 0 0 16px;
+  color: var(--ink);
+  font-size: clamp(1.45rem, 3vw, 2.2rem);
+  line-height: 1.16;
+}
+
+.news-reader hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 0 0 20px;
+}
+
+.texto-artigo {
+  display: grid;
+  gap: 14px;
+  overflow-wrap: anywhere;
+}
+
+.texto-artigo p,
+.texto-artigo div {
+  max-width: 76ch;
+}
+
+.texto-artigo img {
+  height: auto;
+  border-radius: 8px;
+}
+
+.texto-artigo a {
+  color: #7dd3fc;
+}
+
+.reader-error {
+  color: #fecdd3;
+  font-weight: 900;
 }
 
 @media (max-width: 960px) {

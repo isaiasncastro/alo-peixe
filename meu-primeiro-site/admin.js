@@ -4,6 +4,7 @@ const elements = {
   loginCard: document.querySelector("#loginCard"),
   loginForm: document.querySelector("#loginForm"),
   loginMessage: document.querySelector("#loginMessage"),
+  localLoginHint: document.querySelector("#localLoginHint"),
   passwordInput: document.querySelector("#passwordInput"),
   workspace: document.querySelector("#adminWorkspace"),
   tabButtons: document.querySelectorAll(".tab-button"),
@@ -26,6 +27,7 @@ const elements = {
   descriptionInput: document.querySelector("#descriptionInput"),
   contentInput: document.querySelector("#contentInput"),
   imageInput: document.querySelector("#imageInput"),
+  videoUrlInput: document.querySelector("#videoUrlInput"),
   linkInput: document.querySelector("#linkInput"),
   mediaTypeInput: document.querySelector("#mediaTypeInput"),
   publishedInput: document.querySelector("#publishedInput"),
@@ -35,10 +37,25 @@ const elements = {
   reloadButton: document.querySelector("#reloadButton"),
   exclusiveList: document.querySelector("#exclusiveList"),
   template: document.querySelector("#exclusiveTemplate"),
+  directoryTemplate: document.querySelector("#directoryTemplate"),
+  newsModal: document.querySelector("#modal-noticia"),
+  newsContent: document.querySelector("#conteudo-noticia"),
+  serviceForm: document.querySelector("#serviceForm"),
+  serviceList: document.querySelector("#serviceList"),
+  serviceMessage: document.querySelector("#serviceMessage"),
+  serviceResetButton: document.querySelector("#serviceResetButton"),
+  serviceReloadButton: document.querySelector("#serviceReloadButton"),
+  authorityForm: document.querySelector("#authorityForm"),
+  authorityList: document.querySelector("#authorityList"),
+  authorityMessage: document.querySelector("#authorityMessage"),
+  authorityResetButton: document.querySelector("#authorityResetButton"),
+  authorityReloadButton: document.querySelector("#authorityReloadButton"),
 };
 
 let adminPassword = sessionStorage.getItem("aloPeixeAdminPassword") || "";
 let exclusives = [];
+let services = [];
+let authorities = [];
 let settings = {};
 
 function authHeaders() {
@@ -67,6 +84,43 @@ async function requestJson(url, options = {}) {
   }
 
   return data;
+}
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+async function visualizarNoticia(url) {
+  if (!url || url === "#") {
+    return;
+  }
+
+  elements.newsModal.classList.add("is-open");
+  elements.newsModal.setAttribute("aria-hidden", "false");
+  elements.newsContent.innerHTML = "<p>Carregando conteudo...</p>";
+
+  try {
+    const data = await requestJson(`/api/ler-noticia?url=${encodeURIComponent(url)}`, {
+      headers: authHeaders(),
+    });
+    elements.newsContent.innerHTML = `
+      <h2 id="titulo-noticia-modal">${escapeHtml(data.titulo || "Noticia")}</h2>
+      <hr>
+      <div class="texto-artigo">${data.conteudo || "<p>Conteudo nao encontrado.</p>"}</div>
+    `;
+  } catch (error) {
+    elements.newsContent.innerHTML = `<p class="reader-error">${escapeHtml(error.message || "Erro ao extrair noticia.")}</p>`;
+  }
+}
+
+function fecharModal() {
+  elements.newsModal.classList.remove("is-open");
+  elements.newsModal.setAttribute("aria-hidden", "true");
 }
 
 function openTab(panelId) {
@@ -111,6 +165,7 @@ function resetForm() {
   elements.storyForm.reset();
   elements.storyId.value = "";
   elements.imageInput.value = FALLBACK_IMAGE;
+  elements.videoUrlInput.value = "";
   elements.linkInput.value = "#";
   elements.publishedInput.checked = true;
   elements.formTitle.textContent = "Nova matéria";
@@ -123,6 +178,7 @@ function formPayload() {
     description: elements.descriptionInput.value,
     content: elements.contentInput.value,
     image: elements.imageInput.value || FALLBACK_IMAGE,
+    videoUrl: elements.videoUrlInput.value,
     link: elements.linkInput.value || "#",
     mediaType: elements.mediaTypeInput.value,
     published: elements.publishedInput.checked,
@@ -135,12 +191,159 @@ function fillForm(item) {
   elements.descriptionInput.value = item.description || "";
   elements.contentInput.value = item.content || "";
   elements.imageInput.value = item.image || FALLBACK_IMAGE;
+  elements.videoUrlInput.value = item.videoUrl || "";
   elements.linkInput.value = item.link || "#";
   elements.mediaTypeInput.value = item.mediaType || "imagem";
   elements.publishedInput.checked = item.published !== false;
   elements.formTitle.textContent = "Editar matéria";
   openTab("storyPanel");
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+const directoryConfigs = {
+  services: {
+    endpoint: "/api/prestadores",
+    collection: () => services,
+    setCollection: (items) => {
+      services = items;
+    },
+    prefix: "service",
+    panel: "servicesPanel",
+    list: () => elements.serviceList,
+    message: () => elements.serviceMessage,
+    emptyText: "Nenhum prestador cadastrado ainda.",
+    savedText: "Prestador salvo e publicado.",
+    deletedText: "Prestador excluído.",
+    newTitle: "Novo prestador",
+    editTitle: "Editar prestador",
+  },
+  authorities: {
+    endpoint: "/api/autoridades",
+    collection: () => authorities,
+    setCollection: (items) => {
+      authorities = items;
+    },
+    prefix: "authority",
+    panel: "authoritiesPanel",
+    list: () => elements.authorityList,
+    message: () => elements.authorityMessage,
+    emptyText: "Nenhuma autoridade cadastrada ainda.",
+    savedText: "Autoridade salva e publicada.",
+    deletedText: "Autoridade excluída.",
+    newTitle: "Nova autoridade",
+    editTitle: "Editar autoridade",
+  },
+};
+
+function directoryElement(config, suffix) {
+  return document.querySelector(`#${config.prefix}${suffix}`);
+}
+
+function resetDirectoryForm(kind) {
+  const config = directoryConfigs[kind];
+  directoryElement(config, "Form").reset();
+  directoryElement(config, "Id").value = "";
+  directoryElement(config, "ImageInput").value = FALLBACK_IMAGE;
+  directoryElement(config, "PublishedInput").checked = true;
+  directoryElement(config, "FormTitle").textContent = config.newTitle;
+  showMessage(config.message(), "");
+}
+
+function directoryPayload(kind) {
+  const config = directoryConfigs[kind];
+  return {
+    name: directoryElement(config, "NameInput").value,
+    role: directoryElement(config, "RoleInput").value,
+    description: directoryElement(config, "DescriptionInput").value,
+    phone: directoryElement(config, "PhoneInput").value,
+    instagram: directoryElement(config, "InstagramInput").value,
+    image: directoryElement(config, "ImageInput").value || FALLBACK_IMAGE,
+    link: directoryElement(config, "LinkInput").value,
+    published: directoryElement(config, "PublishedInput").checked,
+  };
+}
+
+function fillDirectoryForm(kind, item) {
+  const config = directoryConfigs[kind];
+  directoryElement(config, "Id").value = item.id;
+  directoryElement(config, "NameInput").value = item.name || "";
+  directoryElement(config, "RoleInput").value = item.role || "";
+  directoryElement(config, "DescriptionInput").value = item.description || "";
+  directoryElement(config, "PhoneInput").value = item.phone || "";
+  directoryElement(config, "InstagramInput").value = item.instagram || "";
+  directoryElement(config, "ImageInput").value = item.image || FALLBACK_IMAGE;
+  directoryElement(config, "LinkInput").value = item.link || "";
+  directoryElement(config, "PublishedInput").checked = item.published !== false;
+  directoryElement(config, "FormTitle").textContent = config.editTitle;
+  openTab(config.panel);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderDirectory(kind) {
+  const config = directoryConfigs[kind];
+  const items = config.collection();
+  const list = config.list();
+
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state">${config.emptyText}</div>`;
+    return;
+  }
+
+  list.replaceChildren(
+    ...items.map((item) => {
+      const card = elements.directoryTemplate.content.firstElementChild.cloneNode(true);
+      const image = card.querySelector("img");
+      const status = card.querySelector("span");
+      const title = card.querySelector("h3");
+      const description = card.querySelector("p");
+
+      image.src = item.image || FALLBACK_IMAGE;
+      image.alt = item.name;
+      image.addEventListener("error", () => {
+        image.src = FALLBACK_IMAGE;
+      });
+      status.textContent = item.published === false ? "Rascunho" : item.role || "Publicado";
+      title.textContent = item.name;
+      description.textContent = item.description || item.instagram || item.phone || "Sem descrição.";
+
+      card.querySelector(".edit-button").addEventListener("click", () => fillDirectoryForm(kind, item));
+      card.querySelector(".delete-button").addEventListener("click", async () => {
+        if (!confirm(`Excluir "${item.name}"?`)) {
+          return;
+        }
+
+        await requestJson(`${config.endpoint}/${item.id}`, {
+          method: "DELETE",
+          headers: authHeaders(),
+        });
+        await loadAdmin();
+        showMessage(config.message(), config.deletedText);
+      });
+
+      return card;
+    })
+  );
+}
+
+async function saveDirectory(kind, event) {
+  event.preventDefault();
+  const config = directoryConfigs[kind];
+  const id = directoryElement(config, "Id").value;
+  const url = id ? `${config.endpoint}/${id}` : config.endpoint;
+  const method = id ? "PUT" : "POST";
+
+  try {
+    await requestJson(url, {
+      method,
+      headers: authHeaders(),
+      body: JSON.stringify(directoryPayload(kind)),
+    });
+    resetDirectoryForm(kind);
+    await loadAdmin();
+    showMessage(config.message(), config.savedText);
+  } catch (error) {
+    showMessage(config.message(), error.message, true);
+  }
 }
 
 async function loadAdmin() {
@@ -150,7 +353,11 @@ async function loadAdmin() {
 
   fillSettingsForm(data.settings);
   exclusives = data.items || [];
+  services = data.services || [];
+  authorities = data.authorities || [];
   renderExclusives();
+  renderDirectory("services");
+  renderDirectory("authorities");
 }
 
 function renderExclusives() {
@@ -180,6 +387,9 @@ function renderExclusives() {
       title.textContent = item.title;
       description.textContent = item.description || "Sem resumo cadastrado.";
 
+      const readButton = card.querySelector(".read-button");
+      readButton.hidden = !item.link || item.link === "#";
+      readButton.addEventListener("click", () => visualizarNoticia(item.link));
       card.querySelector(".edit-button").addEventListener("click", () => fillForm(item));
       card.querySelector(".delete-button").addEventListener("click", async () => {
         if (!confirm(`Excluir "${item.title}"?`)) {
@@ -255,8 +465,24 @@ async function enterAdmin(event) {
 elements.loginForm.addEventListener("submit", enterAdmin);
 elements.settingsForm.addEventListener("submit", saveSettings);
 elements.storyForm.addEventListener("submit", saveStory);
+elements.serviceForm.addEventListener("submit", (event) => saveDirectory("services", event));
+elements.authorityForm.addEventListener("submit", (event) => saveDirectory("authorities", event));
 elements.resetButton.addEventListener("click", resetForm);
 elements.reloadButton.addEventListener("click", loadAdmin);
+elements.serviceResetButton.addEventListener("click", () => resetDirectoryForm("services"));
+elements.authorityResetButton.addEventListener("click", () => resetDirectoryForm("authorities"));
+elements.serviceReloadButton.addEventListener("click", loadAdmin);
+elements.authorityReloadButton.addEventListener("click", loadAdmin);
+elements.newsModal.addEventListener("click", (event) => {
+  if (event.target === elements.newsModal) {
+    fecharModal();
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    fecharModal();
+  }
+});
 elements.tabButtons.forEach((button) => {
   button.addEventListener("click", () => openTab(button.dataset.tab));
 });
@@ -264,3 +490,12 @@ elements.tabButtons.forEach((button) => {
 if (adminPassword) {
   elements.passwordInput.value = adminPassword;
 }
+
+if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+  elements.localLoginHint.hidden = false;
+}
+
+window.App = {
+  visualizarNoticia,
+  fecharModal,
+};

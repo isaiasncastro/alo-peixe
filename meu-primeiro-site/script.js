@@ -20,7 +20,11 @@ const elements = {
   topStories: document.querySelector("#topStories"),
   videoList: document.querySelector("#videoList"),
   newsList: document.querySelector("#newsList"),
+  sidebarList: document.querySelector("#sidebarList"),
   template: document.querySelector("#storyTemplate"),
+  serviceDirectory: document.querySelector("#serviceDirectory"),
+  authorityDirectory: document.querySelector("#authorityDirectory"),
+  directoryTemplate: document.querySelector("#directoryCardTemplate"),
 };
 
 function setText(selector, value) {
@@ -70,6 +74,69 @@ function setMediaBadge(element, type) {
   element.textContent = type === "vídeo" ? "Vídeo" : type === "sem foto" ? "Alô Peixe" : "Foto";
 }
 
+function isVideoType(type) {
+  return type === "video" || type === "v\u00eddeo";
+}
+
+function getVideoEmbedUrl(url = "") {
+  if (!url) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+
+    if (host === "youtu.be") {
+      return `https://www.youtube.com/embed/${parsed.pathname.slice(1)}`;
+    }
+
+    if (host.includes("youtube.com")) {
+      const id = parsed.searchParams.get("v") || parsed.pathname.split("/").filter(Boolean).pop();
+      return id ? `https://www.youtube.com/embed/${id}` : "";
+    }
+
+    if (host.includes("vimeo.com")) {
+      const id = parsed.pathname.split("/").filter(Boolean).pop();
+      return id ? `https://player.vimeo.com/video/${id}` : "";
+    }
+
+    return url;
+  } catch {
+    return "";
+  }
+}
+
+function createLeadMedia(item) {
+  const videoUrl = getVideoEmbedUrl(item.videoUrl);
+
+  if (isVideoType(item.mediaType) && videoUrl) {
+    const isDirectVideo = /\.(mp4|webm|ogg)(\?.*)?$/i.test(videoUrl);
+    const media = document.createElement(isDirectVideo ? "video" : "iframe");
+
+    media.title = item.title;
+
+    if (isDirectVideo) {
+      media.src = videoUrl;
+      media.controls = true;
+      media.poster = item.image || FALLBACK_IMAGE;
+    } else {
+      media.src = videoUrl;
+      media.loading = "lazy";
+      media.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+      media.allowFullscreen = true;
+    }
+
+    return media;
+  }
+
+  const image = document.createElement("img");
+  image.src = item.image || FALLBACK_IMAGE;
+  image.alt = item.title;
+  applyImageFallback(image);
+  return image;
+}
+
 function normalizeItem(item) {
   return {
     id: item.id || crypto.randomUUID(),
@@ -81,7 +148,8 @@ function normalizeItem(item) {
     link: item.link || "#",
     pubDate: item.pubDate || new Date().toISOString(),
     image: item.image || FALLBACK_IMAGE,
-    mediaType: item.mediaType || "imagem",
+    videoUrl: item.videoUrl || "",
+    mediaType: item.videoUrl ? "v?deo" : item.mediaType || "imagem",
   };
 }
 
@@ -99,14 +167,9 @@ function applySettings(settings) {
 
   document.title = `${state.settings.siteName || "Alô Peixe"} | Notícias`;
 
-  document.querySelectorAll(".brand img, .sidebar > img").forEach((image) => {
+  document.querySelectorAll(".brand img").forEach((image) => {
     image.src = state.settings.logo || FALLBACK_IMAGE;
   });
-
-  const sourceLink = document.querySelector(".sidebar a");
-  if (sourceLink && state.settings.publicSourceUrl) {
-    sourceLink.href = state.settings.publicSourceUrl;
-  }
 }
 
 function buildStoryCard(item, variant = "default") {
@@ -155,7 +218,6 @@ function renderLead(news) {
   const article = document.createElement("article");
   const link = document.createElement("a");
   const media = document.createElement("div");
-  const image = document.createElement("img");
   const badge = document.createElement("span");
   const content = document.createElement("div");
   const tag = document.createElement("span");
@@ -172,12 +234,10 @@ function renderLead(news) {
   badge.className = "media-badge";
   tag.className = "tag";
 
-  image.src = lead.image;
-  image.alt = lead.title;
   tag.textContent =
     lead.type === "exclusive"
       ? "Exclusivo Alô Peixe"
-      : lead.mediaType === "vídeo"
+      : isVideoType(lead.mediaType)
         ? "Vídeo em destaque"
         : "Manchete principal";
   title.textContent = lead.title;
@@ -185,9 +245,7 @@ function renderLead(news) {
   time.dateTime = lead.pubDate;
   time.textContent = formatDate(lead.pubDate);
   setMediaBadge(badge, lead.mediaType);
-  applyImageFallback(image);
-
-  media.append(image, badge);
+  media.append(createLeadMedia(lead), badge);
   content.append(tag, title, description, time);
   link.append(media, content);
   article.append(link);
@@ -230,6 +288,113 @@ function renderList(news) {
   elements.newsList.replaceChildren(...latest.map((item) => buildStoryCard(item, "list")));
 }
 
+function renderSidebar(news) {
+  const items = news.slice(0, 6);
+
+  if (!items.length) {
+    elements.sidebarList.innerHTML = `
+      <div class="empty-state">
+        Nenhuma noticia publicada ainda.
+      </div>
+    `;
+    return;
+  }
+
+  elements.sidebarList.replaceChildren(
+    ...items.map((item) => {
+      const article = document.createElement("article");
+      const tag = document.createElement("span");
+      const title = document.createElement("h3");
+      const time = document.createElement("time");
+
+      article.className = "sidebar-story";
+      tag.textContent = item.source || "Alo Peixe";
+      title.textContent = item.title;
+      time.dateTime = item.pubDate;
+      time.textContent = formatDate(item.pubDate);
+      article.append(tag, title, time);
+      return article;
+    })
+  );
+}
+
+function normalizeDirectoryItem(item) {
+  return {
+    name: item.name || "Sem nome",
+    role: item.role || "",
+    description: item.description || "",
+    phone: item.phone || "",
+    instagram: item.instagram || "",
+    image: item.image || FALLBACK_IMAGE,
+    link: item.link || "",
+  };
+}
+
+function instagramUrl(value = "") {
+  const clean = value.trim();
+  if (!clean) {
+    return "";
+  }
+  if (/^https?:\/\//i.test(clean)) {
+    return clean;
+  }
+  return `https://instagram.com/${clean.replace(/^@/, "")}`;
+}
+
+function renderDirectory(listElement, items, emptyText) {
+  const normalized = (items || []).map(normalizeDirectoryItem);
+
+  if (!normalized.length) {
+    listElement.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+    return;
+  }
+
+  listElement.replaceChildren(
+    ...normalized.map((item) => {
+      const card = elements.directoryTemplate.content.firstElementChild.cloneNode(true);
+      const image = card.querySelector("img");
+      const role = card.querySelector("span");
+      const name = card.querySelector("h3");
+      const description = card.querySelector("p");
+      const actions = card.querySelector(".directory-actions");
+
+      image.src = item.image;
+      image.alt = item.name;
+      applyImageFallback(image);
+      role.textContent = item.role || "Cadastro local";
+      name.textContent = item.name;
+      description.textContent = item.description || "Informações disponíveis no contato.";
+
+      if (item.phone) {
+        const phone = document.createElement("a");
+        phone.href = `tel:${item.phone.replace(/\D/g, "")}`;
+        phone.textContent = item.phone;
+        actions.append(phone);
+      }
+
+      if (item.instagram) {
+        const instagram = document.createElement("a");
+        instagram.href = instagramUrl(item.instagram);
+        instagram.target = "_blank";
+        instagram.rel = "noreferrer";
+        instagram.textContent = item.instagram.startsWith("@") ? item.instagram : `@${item.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/$/, "")}`;
+        actions.append(instagram);
+      }
+
+      if (item.link) {
+        const link = document.createElement("a");
+        link.href = item.link;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        link.textContent = "Abrir";
+        actions.append(link);
+      }
+
+      return card;
+    })
+  );
+}
+
 function render(news) {
   const term = elements.searchInput.value.trim().toLowerCase();
   const filtered = term
@@ -240,6 +405,7 @@ function render(news) {
   renderTopStories(filtered);
   renderVideos(filtered);
   renderList(filtered);
+  renderSidebar(filtered);
 
   elements.newsCount.textContent = `${filtered.length} ${
     filtered.length === 1 ? "notícia carregada" : "notícias carregadas"
@@ -263,13 +429,15 @@ async function loadSite() {
     state.allNews = (data.items || []).map(normalizeItem);
     state.lastSuccessfulUpdate = new Date(data.updatedAt || Date.now());
     render(state.allNews);
+    renderDirectory(elements.serviceDirectory, data.services || [], "Nenhum prestador cadastrado ainda.");
+    renderDirectory(elements.authorityDirectory, data.authorities || [], "Nenhuma autoridade cadastrada ainda.");
 
     if (data.feedStatus === "online") {
       setStatus("online", "Portal conectado", "Matérias exclusivas e feed automático carregados.");
     } else if (data.feedStatus === "desativado") {
       setStatus("online", "Feed automático desativado", "Mostrando apenas matérias cadastradas no painel.");
     } else {
-      setStatus("error", "Feed automático instável", "O portal continua ativo com as matérias cadastradas no painel.");
+      setStatus("online", "Portal carregado", "Mostrando as matérias disponíveis no momento.");
     }
 
     elements.lastUpdate.textContent = `Última atualização: ${formatDate(state.lastSuccessfulUpdate)}`;

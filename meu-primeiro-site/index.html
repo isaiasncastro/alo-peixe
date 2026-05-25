@@ -27,6 +27,8 @@
         <a href="#destaques">Destaques</a>
         <a href="#videos">Vídeos</a>
         <a href="#ultimas">Últimas</a>
+        <a href="#prestadores">Prestadores</a>
+        <a href="#autoridades">Autoridades</a>
         <a href="/admin.html">Painel</a>
         <button class="refresh-button" id="refreshButton" type="button" aria-label="Atualizar notícias">
           Atualizar
@@ -103,21 +105,27 @@
         <div class="news-list" id="newsList" aria-live="polite"></div>
       </div>
 
-      <aside class="sidebar" id="fonte">
-        <img src="assets/alo-peixe-logo.jpeg" alt="Logo Alô Peixe" />
-        <h2>Curadoria automática</h2>
-        <p>
-          O site lê notícias automáticas e também publica informações exclusivas
-          cadastradas no painel administrativo do Alô Peixe.
-        </p>
-        <a href="https://g1.globo.com/to/tocantins/" target="_blank" rel="noreferrer">
-          Abrir fonte original
-        </a>
-        <div class="source-box">
-          <strong>Fonte técnica</strong>
-          <code>g1.globo.com/dynamo/to/tocantins/rss2.xml</code>
+      <aside class="sidebar latest-panel" id="fonte" aria-label="Plantão de notícias">
+        <div class="section-heading">
+          <p class="eyebrow">Plantão</p>
+          <h2>Agora no Alô Peixe</h2>
         </div>
+        <div class="sidebar-list" id="sidebarList"></div>
       </aside>
+    </section>
+
+    <section class="directory-section" id="prestadores" aria-label="Prestadores de serviço">
+      <div class="section-heading compact">
+        <div><p class="eyebrow">Guia local</p><h2>Prestadores de serviço</h2></div>
+      </div>
+      <div class="directory-grid" id="serviceDirectory"></div>
+    </section>
+
+    <section class="directory-section" id="autoridades" aria-label="Autoridades da cidade">
+      <div class="section-heading compact">
+        <div><p class="eyebrow">Institucional</p><h2>Autoridades da cidade</h2></div>
+      </div>
+      <div class="directory-grid" id="authorityDirectory"></div>
     </section>
   </main>
 
@@ -143,6 +151,18 @@
     </article>
   </template>
 
+
+  <template id="directoryCardTemplate">
+    <article class="directory-card">
+      <img alt="" loading="lazy" />
+      <div>
+        <span></span>
+        <h3></h3>
+        <p></p>
+        <div class="directory-actions"></div>
+      </div>
+    </article>
+  </template>
   <script src="script.js"></script>
 </body>
 </html>
