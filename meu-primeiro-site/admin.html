@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Alô Peixe</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin-page">
+  <header class="admin-header">
+    <a class="brand" href="/">
+      <img src="assets/alo-peixe-logo.jpeg" alt="Logo Alô Peixe" />
+      <span>
+        <strong>Painel Alô Peixe</strong>
+        <small>Controle editorial completo</small>
+      </span>
+    </a>
+    <a class="admin-public-link" href="/">Ver site público</a>
+  </header>
+
+  <main class="admin-shell">
+    <section class="admin-card login-card" id="loginCard">
+      <h1>Entrar no painel</h1>
+      <p>Digite a senha configurada no Render em <strong>ADMIN_PASSWORD</strong>.</p>
+      <p class="local-login-hint" id="localLoginHint" hidden>Senha local: <strong>alopeixe2026</strong></p>
+      <form id="loginForm">
+        <label>
+          Senha do painel
+          <input id="passwordInput" type="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit">Entrar</button>
+      </form>
+      <p class="message" id="loginMessage" role="status"></p>
+    </section>
+
+    <section class="admin-workspace" id="adminWorkspace" hidden>
+      <nav class="admin-tabs" aria-label="Áreas do painel">
+        <button class="tab-button is-active" type="button" data-tab="settingsPanel">Editar site</button>
+        <button class="tab-button" type="button" data-tab="storyPanel">Matérias</button>
+        <button class="tab-button" type="button" data-tab="servicesPanel">Prestadores</button>
+        <button class="tab-button" type="button" data-tab="authoritiesPanel">Autoridades</button>
+      </nav>
+
+      <section class="admin-panel is-active" id="settingsPanel">
+        <form class="admin-card editor-card" id="settingsForm">
+          <div class="form-heading">
+            <div>
+              <p class="eyebrow">Configurações do portal</p>
+              <h1>Editar textos e funcionamento</h1>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              Nome do site
+              <input id="siteNameInput" type="text" required />
+            </label>
+            <label>
+              Subtítulo da marca
+              <input id="taglineInput" type="text" required />
+            </label>
+          </div>
+
+          <label>
+            Texto pequeno do topo
+            <input id="heroEyebrowInput" type="text" required />
+          </label>
+
+          <label>
+            Título principal
+            <textarea id="heroTitleInput" rows="2" required></textarea>
+          </label>
+
+          <label>
+            Descrição principal
+            <textarea id="heroDescriptionInput" rows="3" required></textarea>
+          </label>
+
+          <div class="form-grid">
+            <label>
+              Texto do selo ao vivo
+              <input id="tickerLabelInput" type="text" required />
+            </label>
+            <label>
+              Link da fonte original
+              <input id="publicSourceUrlInput" type="url" required />
+            </label>
+          </div>
+
+          <label>
+            Logo ou imagem principal
+            <input id="logoInput" type="text" required />
+          </label>
+
+          <label>
+            Texto do rodapé
+            <input id="footerTextInput" type="text" required />
+          </label>
+
+          <label class="checkbox-label">
+            <input id="automaticFeedInput" type="checkbox" />
+            Usar notícias automáticas do G1 Tocantins
+          </label>
+
+          <div class="form-actions">
+            <button type="submit">Salvar alterações do site</button>
+            <p class="message" id="settingsMessage" role="status"></p>
+          </div>
+        </form>
+      </section>
+
+      <section class="admin-panel" id="storyPanel">
+        <div class="admin-grid">
+          <form class="admin-card editor-card" id="storyForm">
+            <div class="form-heading">
+              <div>
+                <p class="eyebrow">Publicação local</p>
+                <h1 id="formTitle">Nova matéria</h1>
+              </div>
+              <button class="secondary-button" id="resetButton" type="button">Limpar</button>
+            </div>
+
+            <input id="storyId" type="hidden" />
+
+            <label>
+              Título
+              <input id="titleInput" type="text" maxlength="140" required />
+            </label>
+
+            <label>
+              Resumo
+              <textarea id="descriptionInput" rows="3" maxlength="280"></textarea>
+            </label>
+
+            <label>
+              Texto completo ou observações
+              <textarea id="contentInput" rows="7"></textarea>
+            </label>
+
+            <div class="form-grid">
+              <label>
+                Foto da notícia
+                <input id="imageInput" type="text" placeholder="Cole a URL da foto ou use assets/alo-peixe-logo.jpeg" />
+              </label>
+
+              <label>
+                Link externo
+                <input id="linkInput" type="text" placeholder="#" />
+              </label>
+            </div>
+
+            <label>
+              Vídeo da notícia
+              <input id="videoUrlInput" type="url" placeholder="YouTube, Vimeo, MP4 ou link incorporável" />
+            </label>
+
+            <div class="form-grid">
+              <label>
+                Destaque multimídia
+                <select id="mediaTypeInput">
+                  <option value="imagem">Imagem</option>
+                  <option value="vídeo">Vídeo</option>
+                </select>
+              </label>
+
+              <label class="checkbox-label">
+                <input id="publishedInput" type="checkbox" checked />
+                Publicar no site
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit">Salvar matéria</button>
+              <p class="message" id="formMessage" role="status"></p>
+            </div>
+          </form>
+
+          <section class="admin-card list-card">
+            <div class="form-heading">
+              <div>
+                <p class="eyebrow">Arquivo editorial</p>
+                <h2>Matérias cadastradas</h2>
+              </div>
+              <button class="secondary-button" id="reloadButton" type="button">Recarregar</button>
+            </div>
+            <div class="exclusive-list" id="exclusiveList"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="admin-panel" id="servicesPanel">
+        <div class="admin-grid">
+          <form class="admin-card editor-card" id="serviceForm">
+            <div class="form-heading"><div><p class="eyebrow">Guia local</p><h1 id="serviceFormTitle">Novo prestador</h1></div><button class="secondary-button" id="serviceResetButton" type="button">Limpar</button></div>
+            <input id="serviceId" type="hidden" />
+            <label>Nome<input id="serviceNameInput" type="text" maxlength="120" required /></label>
+            <label>Servico ou profissao<input id="serviceRoleInput" type="text" maxlength="120" placeholder="Eletricista, manicure, mecanico..." /></label>
+            <label>Descricao<textarea id="serviceDescriptionInput" rows="4" maxlength="360"></textarea></label>
+            <div class="form-grid"><label>Telefone ou WhatsApp<input id="servicePhoneInput" type="text" placeholder="(63) 99999-9999" /></label><label>Instagram<input id="serviceInstagramInput" type="text" placeholder="@perfil" /></label></div>
+            <div class="form-grid"><label>Foto<input id="serviceImageInput" type="text" placeholder="URL da foto" /></label><label>Link externo<input id="serviceLinkInput" type="text" placeholder="https://..." /></label></div>
+            <label class="checkbox-label"><input id="servicePublishedInput" type="checkbox" checked /> Publicar no site</label>
+            <div class="form-actions"><button type="submit">Salvar prestador</button><p class="message" id="serviceMessage" role="status"></p></div>
+          </form>
+          <section class="admin-card list-card"><div class="form-heading"><div><p class="eyebrow">Cadastros</p><h2>Prestadores cadastrados</h2></div><button class="secondary-button" id="serviceReloadButton" type="button">Recarregar</button></div><div class="exclusive-list" id="serviceList"></div></section>
+        </div>
+      </section>
+
+      <section class="admin-panel" id="authoritiesPanel">
+        <div class="admin-grid">
+          <form class="admin-card editor-card" id="authorityForm">
+            <div class="form-heading"><div><p class="eyebrow">Institucional</p><h1 id="authorityFormTitle">Nova autoridade</h1></div><button class="secondary-button" id="authorityResetButton" type="button">Limpar</button></div>
+            <input id="authorityId" type="hidden" />
+            <label>Nome<input id="authorityNameInput" type="text" maxlength="120" required /></label>
+            <label>Cargo<input id="authorityRoleInput" type="text" maxlength="120" placeholder="Prefeito, vereador, secretario..." /></label>
+            <label>Descricao<textarea id="authorityDescriptionInput" rows="4" maxlength="360"></textarea></label>
+            <div class="form-grid"><label>Telefone ou contato<input id="authorityPhoneInput" type="text" /></label><label>Instagram<input id="authorityInstagramInput" type="text" placeholder="@perfil" /></label></div>
+            <div class="form-grid"><label>Foto<input id="authorityImageInput" type="text" placeholder="URL da foto" /></label><label>Link externo<input id="authorityLinkInput" type="text" placeholder="https://..." /></label></div>
+            <label class="checkbox-label"><input id="authorityPublishedInput" type="checkbox" checked /> Publicar no site</label>
+            <div class="form-actions"><button type="submit">Salvar autoridade</button><p class="message" id="authorityMessage" role="status"></p></div>
+          </form>
+          <section class="admin-card list-card"><div class="form-heading"><div><p class="eyebrow">Cadastros</p><h2>Autoridades cadastradas</h2></div><button class="secondary-button" id="authorityReloadButton" type="button">Recarregar</button></div><div class="exclusive-list" id="authorityList"></div></section>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="modal-noticia" class="news-modal" aria-hidden="true">
+    <div class="news-modal-content" role="dialog" aria-modal="true" aria-labelledby="titulo-noticia-modal">
+      <button class="btn-action close-reader-button" type="button" onclick="App.fecharModal()">Fechar leitura</button>
+      <div id="conteudo-noticia" class="news-reader">
+        <p>Carregando conteudo...</p>
+      </div>
+    </div>
+  </div>
+
+  <template id="exclusiveTemplate">
+    <article class="exclusive-item">
+      <img alt="" />
+      <div>
+        <span></span>
+        <h3></h3>
+        <p></p>
+      </div>
+      <div class="item-actions">
+        <button class="btn-action read-button" type="button">Ler</button>
+        <button class="secondary-button edit-button" type="button">Editar</button>
+        <button class="danger-button delete-button" type="button">Excluir</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="directoryTemplate">
+    <article class="exclusive-item">
+      <img alt="" />
+      <div><span></span><h3></h3><p></p></div>
+      <div class="item-actions"><button class="secondary-button edit-button" type="button">Editar</button><button class="danger-button delete-button" type="button">Excluir</button></div>
+    </article>
+  </template>
+
+  <script src="admin.js?v=3"></script>
+</body>
+</html>

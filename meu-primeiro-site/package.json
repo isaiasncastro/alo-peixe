@@ -1,0 +1,16 @@
+{
+  "name": "alo-peixe-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portal Alô Peixe com notícias automáticas e painel administrativo.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

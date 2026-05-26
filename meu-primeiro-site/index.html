@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="Alô Peixe: portal de notícias do Tocantins com atualização automática, fotos e destaques do G1 Tocantins."
+  />
+  <title>Alô Peixe | Notícias do Tocantins</title>
+  <link rel="preconnect" href="https://g1.globo.com" />
+  <link rel="preconnect" href="https://api.allorigins.win" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <nav class="topbar" aria-label="Menu principal">
+      <a class="brand" href="#" aria-label="Alô Peixe - página inicial">
+        <img src="assets/alo-peixe-logo.jpeg" alt="Logo Alô Peixe" />
+        <span>
+          <strong>Alô Peixe</strong>
+          <small>Plantão Tocantins</small>
+        </span>
+      </a>
+
+      <div class="topbar-actions">
+        <a href="#destaques">Destaques</a>
+        <a href="#videos">Vídeos</a>
+        <a href="#ultimas">Últimas</a>
+        <a href="#prestadores">Prestadores</a>
+        <a href="#autoridades">Autoridades</a>
+        <a href="/admin.html">Painel</a>
+        <button class="refresh-button" id="refreshButton" type="button" aria-label="Atualizar notícias">
+          Atualizar
+        </button>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Notícias em tempo real</p>
+        <h1>Alô Peixe acompanha o Tocantins com manchetes, fotos e vídeos.</h1>
+        <p>
+          Um portal leve e automático que organiza publicações do G1 Tocantins
+          e matérias exclusivas da cidade de Peixe.
+        </p>
+      </div>
+
+      <aside class="status-panel" aria-label="Status das atualizações">
+        <div class="status-heading">
+          <span class="live-dot" aria-hidden="true"></span>
+          <strong id="statusTitle">Conectando ao feed</strong>
+        </div>
+        <p id="statusText">Buscando manchetes, fotos e vídeos mais recentes...</p>
+        <small id="lastUpdate">Ainda sem atualização</small>
+      </aside>
+    </section>
+  </header>
+
+  <main>
+    <section class="ticker" aria-label="Resumo do feed">
+      <span>Ao vivo</span>
+      <p id="tickerText">Carregando as notícias mais recentes do Tocantins...</p>
+    </section>
+
+    <section class="controls" aria-label="Controles de notícias">
+      <label class="search-field" for="searchInput">
+        <span>Buscar notícia</span>
+        <input id="searchInput" type="search" placeholder="Cidade, assunto ou palavra-chave" autocomplete="off" />
+      </label>
+
+      <div class="feed-meta">
+        <span id="newsCount">0 notícias carregadas</span>
+        <span>Atualiza a cada 2 minutos</span>
+      </div>
+    </section>
+
+    <section class="lead-grid" id="destaques" aria-label="Destaques">
+      <article class="lead-card skeleton">
+        <div class="lead-media"></div>
+        <div class="lead-content">
+          <span class="tag">Carregando</span>
+          <h2>Preparando a manchete principal...</h2>
+          <p>Assim que o feed responder, a notícia mais recente aparece aqui.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="top-stories" id="topStories" aria-label="Mais destaques"></section>
+
+    <section class="video-strip" id="videos" aria-label="Vídeos e matérias multimídia">
+      <div class="section-heading compact">
+        <p class="eyebrow">Multimídia</p>
+        <h2>Vídeos e matérias com imagem</h2>
+      </div>
+      <div class="video-list" id="videoList"></div>
+    </section>
+
+    <section class="content-layout" id="ultimas">
+      <div>
+        <div class="section-heading">
+          <p class="eyebrow">Últimas notícias</p>
+          <h2>G1 Tocantins</h2>
+        </div>
+        <div class="news-list" id="newsList" aria-live="polite"></div>
+      </div>
+
+      <aside class="sidebar latest-panel" id="fonte" aria-label="Plantão de notícias">
+        <div class="section-heading">
+          <p class="eyebrow">Plantão</p>
+          <h2>Agora no Alô Peixe</h2>
+        </div>
+        <div class="sidebar-list" id="sidebarList"></div>
+      </aside>
+    </section>
+
+    <section class="directory-section" id="prestadores" aria-label="Prestadores de serviço">
+      <div class="section-heading compact">
+        <div><p class="eyebrow">Guia local</p><h2>Prestadores de serviço</h2></div>
+      </div>
+      <div class="directory-grid" id="serviceDirectory"></div>
+    </section>
+
+    <section class="directory-section" id="autoridades" aria-label="Autoridades da cidade">
+      <div class="section-heading compact">
+        <div><p class="eyebrow">Institucional</p><h2>Autoridades da cidade</h2></div>
+      </div>
+      <div class="directory-grid" id="authorityDirectory"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Alô Peixe</span>
+    <span>Portal com atualização automática e matérias exclusivas de Peixe.</span>
+  </footer>
+
+  <template id="storyTemplate">
+    <article class="story-card">
+      <a class="story-link" target="_blank" rel="noreferrer">
+        <figure>
+          <img alt="" loading="lazy" />
+          <span class="media-badge"></span>
+        </figure>
+        <div>
+          <span class="tag">G1 Tocantins</span>
+          <h3></h3>
+          <p></p>
+          <time></time>
+        </div>
+      </a>
+    </article>
+  </template>
+
+
+  <template id="directoryCardTemplate">
+    <article class="directory-card">
+      <img alt="" loading="lazy" />
+      <div>
+        <span></span>
+        <h3></h3>
+        <p></p>
+        <div class="directory-actions"></div>
+      </div>
+    </article>
+  </template>
+  <script src="script.js"></script>
+</body>
+</html>
